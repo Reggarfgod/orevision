@@ -98,13 +98,10 @@ public class OreScreen extends Screen {
             if (!filter.isEmpty() && !ore.toString().contains(filter))
                 continue;
 
-            // Skip rows outside visible area
             if (y + ROW_HEIGHT < LIST_TOP || y > height - LIST_BOTTOM_PADDING) {
                 y += ROW_HEIGHT;
                 continue;
             }
-
-            /* -------- Checkbox -------- */
 
             Checkbox box = Checkbox.builder(
                             Component.literal(ore.getPath()),
@@ -118,8 +115,6 @@ public class OreScreen extends Screen {
             box.setY(y);
             addRenderableWidget(box);
             checkboxes.add(box);
-
-            /* -------- Color button -------- */
 
             Button colorBtn = Button.builder(
                             Component.literal("Color"),
@@ -135,10 +130,6 @@ public class OreScreen extends Screen {
             y += ROW_HEIGHT;
         }
     }
-
-    /* ------------------------------------------------------------ */
-    /* Scroll handling                                              */
-    /* ------------------------------------------------------------ */
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
@@ -163,8 +154,6 @@ public class OreScreen extends Screen {
         return true;
     }
 
-    /* ------------------------------------------------------------ */
-
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float delta) {
 
@@ -174,7 +163,7 @@ public class OreScreen extends Screen {
 
         gfx.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
 
-        // Divider under search bar
+
         gfx.fill(20, LIST_TOP - 6, width - 20, LIST_TOP - 8, 0x66FFFFFF);
     }
 }
