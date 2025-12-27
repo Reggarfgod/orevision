@@ -1,7 +1,9 @@
 package com.reggarf.mods.orevision.screen;
 
+
 import com.reggarf.mods.orevision.config.OreConfig;
 import com.reggarf.mods.orevision.config.OreConfigIO;
+import com.reggarf.mods.orevision.scanner.BoxRenderMode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -25,58 +27,64 @@ public class ColorScreen extends Screen {
 
     @Override
     protected void init() {
-        int centerX = this.width / 2;
+        int centerX = width / 2;
         int color = OreConfig.getColor(ore);
+
         r = (color >> 16) & 0xFF;
         g = (color >> 8) & 0xFF;
         b = color & 0xFF;
 
         int cx = width / 2;
-        int y = height / 2 - 40;
-
-        int buttonY = height - 40;
-        int buttonWidth = 80;
-        int gap = 10;
+        int y = height / 2 - 50;
 
         addRenderableWidget(slider("Red", r, v -> r = v, cx - 100, y));
         addRenderableWidget(slider("Green", g, v -> g = v, cx - 100, y + 25));
         addRenderableWidget(slider("Blue", b, v -> b = v, cx - 100, y + 50));
 
-        addRenderableWidget(Button.builder(
-                        Component.literal("Save"),
-                        btn -> {
-                            int newColor =
-                                    0xFF000000
-                                            | ((r & 0xFF) << 16)
-                                            | ((g & 0xFF) << 8)
-                                            | (b & 0xFF);
 
-                            OreConfig.setColor(ore, newColor);
+        Button modeBtn = Button.builder(
+                        Component.literal("Box: " + OreConfig.getBoxRenderMode()),
+                        b -> {
+                            BoxRenderMode next = switch (OreConfig.getBoxRenderMode()) {
+                                case LINES -> BoxRenderMode.QUADS;
+                                case QUADS -> BoxRenderMode.VANILLA;
+                                case VANILLA -> BoxRenderMode.LINES;
+                            };
+
+                            OreConfig.setBoxRenderMode(next);
                             OreConfigIO.save();
-                            minecraft.setScreen(parent);
+                            b.setMessage(Component.literal("Box: " + next));
                         }
-                ).pos(centerX - gap - buttonWidth, buttonY)
-                .size(buttonWidth, 20)
-                .build());
+                ).pos(cx - 60, y + 80)
+                .size(120, 20)
+                .build();
+
+        addRenderableWidget(modeBtn);
 
         addRenderableWidget(Button.builder(
-                        Component.literal("Reset"),
-                        btn -> {
-                            OreConfig.clearColor(ore);
-                            OreConfigIO.save();
-                            minecraft.setScreen(parent);
-                        }
-                ).pos(centerX + gap, buttonY)
-                .size(buttonWidth, 20)
-                .build());
+                Component.literal("Save"),
+                btn -> {
+                    int newColor = 0xFF000000 | (r << 16) | (g << 8) | b;
+                    OreConfig.setColor(ore, newColor);
+                    OreConfigIO.save();
+                    minecraft.setScreen(parent);
+                }
+        ).pos(centerX - 90, height - 35).size(80, 20).build());
 
+        addRenderableWidget(Button.builder(
+                Component.literal("Reset"),
+                btn -> {
+                    OreConfig.clearColor(ore);
+                    OreConfigIO.save();
+                    minecraft.setScreen(parent);
+                }
+        ).pos(centerX + 10, height - 35).size(80, 20).build());
     }
 
-    private AbstractSliderButton slider(
-            String label, int start,
-            java.util.function.IntConsumer setter,
-            int x, int y
-    ) {
+    private AbstractSliderButton slider(String label, int start,
+                                        java.util.function.IntConsumer setter,
+                                        int x, int y) {
+
         return new AbstractSliderButton(
                 x, y, 200, 20,
                 Component.literal(label + ": " + start),
@@ -84,10 +92,11 @@ public class ColorScreen extends Screen {
         ) {
             @Override
             protected void updateMessage() {
-                int v = Mth.clamp((int)(value * 255), 0, 255);
+                int v = Mth.clamp((int) (value * 255), 0, 255);
                 setter.accept(v);
                 setMessage(Component.literal(label + ": " + v));
             }
+
             @Override protected void applyValue() {}
         };
     }

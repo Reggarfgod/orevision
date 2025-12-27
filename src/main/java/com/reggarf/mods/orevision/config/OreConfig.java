@@ -1,8 +1,10 @@
 package com.reggarf.mods.orevision.config;
 
 
+import com.reggarf.mods.orevision.scanner.BoxRenderMode;
 import com.reggarf.mods.orevision.util.OreColorUtil;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.ModList;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,4 +51,24 @@ public class OreConfig {
         return COLORS;
     }
 
+    private static BoxRenderMode boxRenderMode;
+
+    static {
+
+        boxRenderMode = BoxRenderMode.VANILLA;
+        if (ModList.get().isLoaded("sodium")) {
+            boxRenderMode = BoxRenderMode.QUADS;
+        }
+        if (ModList.get().isLoaded("embeddium")) {
+            boxRenderMode = BoxRenderMode.VANILLA;
+        }
+    }
+
+    public static BoxRenderMode getBoxRenderMode() {
+        return boxRenderMode;
+    }
+
+    public static void setBoxRenderMode(BoxRenderMode mode) {
+        boxRenderMode = mode;
+    }
 }
