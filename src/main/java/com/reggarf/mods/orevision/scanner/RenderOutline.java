@@ -2,7 +2,6 @@ package com.reggarf.mods.orevision.scanner;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-
 import com.reggarf.mods.orevision.config.OreConfig;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.phys.AABB;
@@ -10,9 +9,7 @@ import org.joml.Matrix4f;
 
 public class RenderOutline {
 
-    /* =========================================================
-       ENTRY POINT (DO NOT CHANGE CALLER)
-       ========================================================= */
+
     public static void renderOutlineBox(
             PoseStack stack,
             VertexConsumer vc,
@@ -26,9 +23,7 @@ public class RenderOutline {
         }
     }
 
-    /* =========================================================
-       MODE: QUADS (YOUR ORIGINAL CODE – UNCHANGED)
-       ========================================================= */
+
     private static void renderQuads(
             PoseStack stack,
             VertexConsumer vc,
@@ -44,30 +39,33 @@ public class RenderOutline {
         float maxY = (float) box.maxY;
         float maxZ = (float) box.maxZ;
 
-        float t = 0.01f;
+        double camDist = box.getCenter().distanceTo(
+                net.minecraft.client.Minecraft.getInstance()
+                        .gameRenderer.getMainCamera()
+                        .getPosition()
+        );
 
-        // Bottom
+        float t = (float) Math.max(0.0020, camDist * 0.0020);
+
         edgeX(vc, m, minX, minY, minZ, maxX, minY, minZ, t, r, g, b, a);
         edgeZ(vc, m, maxX, minY, minZ, maxX, minY, maxZ, t, r, g, b, a);
         edgeX(vc, m, minX, minY, maxZ, maxX, minY, maxZ, t, r, g, b, a);
         edgeZ(vc, m, minX, minY, minZ, minX, minY, maxZ, t, r, g, b, a);
 
-        // Top
+        // Top square
         edgeX(vc, m, minX, maxY, minZ, maxX, maxY, minZ, t, r, g, b, a);
         edgeZ(vc, m, maxX, maxY, minZ, maxX, maxY, maxZ, t, r, g, b, a);
         edgeX(vc, m, minX, maxY, maxZ, maxX, maxY, maxZ, t, r, g, b, a);
         edgeZ(vc, m, minX, maxY, minZ, minX, maxY, maxZ, t, r, g, b, a);
 
-        // Vertical
+        // Vertical edges
         edgeY(vc, m, minX, minY, minZ, minX, maxY, minZ, t, r, g, b, a);
         edgeY(vc, m, maxX, minY, minZ, maxX, maxY, minZ, t, r, g, b, a);
         edgeY(vc, m, minX, minY, maxZ, minX, maxY, maxZ, t, r, g, b, a);
         edgeY(vc, m, maxX, minY, maxZ, maxX, maxY, maxZ, t, r, g, b, a);
     }
 
-    /* =========================================================
-       MODE: FLAT LINES
-       ========================================================= */
+
     private static void renderLines(
             PoseStack stack,
             VertexConsumer vc,
@@ -110,9 +108,7 @@ public class RenderOutline {
         vc.addVertex(m, x2, y2, z2).setColor(r, g, b, a);
     }
 
-    /* =========================================================
-       MODE: VANILLA (EXTRACTED METHOD)
-       ========================================================= */
+
     private static void renderVanilla(
             PoseStack stack,
             VertexConsumer vc,
@@ -127,9 +123,6 @@ public class RenderOutline {
         );
     }
 
-    /* =========================================================
-       ORIGINAL HELPER METHODS (UNCHANGED)
-       ========================================================= */
     private static void edgeX(VertexConsumer vc, Matrix4f m,
                               float x1, float y, float z,
                               float x2, float y2, float z2,

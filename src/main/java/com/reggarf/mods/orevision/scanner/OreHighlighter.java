@@ -6,11 +6,9 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-
-import com.reggarf.mods.orevision.util.OreUtils;
 import com.reggarf.mods.orevision.config.OreConfig;
 import com.reggarf.mods.orevision.keybinds.Keybinds;
-
+import com.reggarf.mods.orevision.util.OreUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
 import net.minecraft.core.BlockPos;
@@ -20,21 +18,16 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-
-import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
-
-import static com.reggarf.mods.orevision.scanner.RenderOutline.renderOutlineBox;
 
 @EventBusSubscriber(value = Dist.CLIENT)
 public class OreHighlighter {
 
-    private static final int RADIUS = 16;
+    private static final int RADIUS = 32;
     private static boolean enabled = false;
 
     /* ============================
