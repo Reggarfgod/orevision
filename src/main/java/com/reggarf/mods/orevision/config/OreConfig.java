@@ -11,7 +11,6 @@ import java.util.Map;
 
 public class OreConfig {
 
-    // enabled ores
     private static final Map<ResourceLocation, Boolean> ENABLED = new HashMap<>();
     private static final Map<ResourceLocation, Integer> COLORS = new HashMap<>();
 

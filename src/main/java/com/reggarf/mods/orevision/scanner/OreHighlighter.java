@@ -30,9 +30,6 @@ public class OreHighlighter {
     private static final int RADIUS = 32;
     private static boolean enabled = false;
 
-    /* ============================
-       VANILLA RENDER TYPE
-       ============================ */
     private static final RenderType XRAY_VANILLA = RenderType.create(
             "orevision_xray",
             DefaultVertexFormat.POSITION_COLOR,
@@ -60,9 +57,7 @@ public class OreHighlighter {
                     .createCompositeState(false)
     );
 
-    /* ============================
-       CUSTOM RENDER TYPE
-       ============================ */
+
     private static final RenderType XRAY_CUSTOM = RenderType.create(
             "orevision_wireframe",
             DefaultVertexFormat.POSITION_COLOR,
@@ -100,9 +95,6 @@ public class OreHighlighter {
         }
     }
 
-    /* =========================================================
-       VANILLA PIPELINE (YOUR FIRST CODE – UNCHANGED)
-       ========================================================= */
     private static void renderVanilla(RenderLevelStageEvent event, Minecraft mc) {
 
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES)
@@ -164,9 +156,6 @@ public class OreHighlighter {
         RenderSystem.disableBlend();
     }
 
-    /* =========================================================
-       CUSTOM PIPELINE (LINES + QUADS)
-       ========================================================= */
     private static void renderCustom(RenderLevelStageEvent event, Minecraft mc) {
 
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS)

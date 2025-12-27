@@ -13,7 +13,7 @@ import org.lwjgl.glfw.GLFW;
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class Keybinds {
 
-    //CATEGORY
+
     private static final String CATEGORY = "key.categories.orevision";
 
     public static KeyMapping TOGGLE;

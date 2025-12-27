@@ -27,8 +27,6 @@ public class OreConfigIO {
                 .resolve("orevision_colors.json");
     }
 
-    /* ---------------- LOAD ---------------- */
-
     public static void load() {
         Path file = getFile();
         if (!Files.exists(file)) return;
@@ -50,8 +48,6 @@ public class OreConfigIO {
             e.printStackTrace();
         }
     }
-
-    /* ---------------- SAVE ---------------- */
 
     public static void save() {
         Path file = getFile();
