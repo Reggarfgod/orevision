@@ -10,6 +10,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.Tags;
 
 import java.util.ArrayList;
@@ -23,11 +25,11 @@ public class OreScreen extends Screen {
 
     private final List<Checkbox> checkboxes = new ArrayList<>();
     private final List<Button> colorButtons = new ArrayList<>();
+    private final List<ItemStack> oreIcons = new ArrayList<>();
 
     private List<ResourceLocation> allOres = List.of();
 
     private int scrollOffset = 0;
-
 
     private static final int SEARCH_Y = 30;
     private static final int SEARCH_HEIGHT = 20;
@@ -62,7 +64,6 @@ public class OreScreen extends Screen {
 
         addRenderableWidget(searchBox);
 
-
         allOres = BuiltInRegistries.BLOCK.entrySet().stream()
                 .filter(e -> e.getValue().defaultBlockState().is(Tags.Blocks.ORES))
                 .map(e -> BuiltInRegistries.BLOCK.getKey(e.getValue()))
@@ -79,18 +80,18 @@ public class OreScreen extends Screen {
                 .pos(width / 2 - 40, height - 30)
                 .size(80, 20)
                 .build());
-
     }
 
     private void refreshList() {
 
         checkboxes.forEach(this::removeWidget);
         colorButtons.forEach(this::removeWidget);
+
         checkboxes.clear();
         colorButtons.clear();
+        oreIcons.clear();
 
         String filter = searchBox.getValue().toLowerCase().trim();
-
         int y = LIST_TOP - scrollOffset;
 
         for (ResourceLocation ore : allOres) {
@@ -103,15 +104,19 @@ public class OreScreen extends Screen {
                 continue;
             }
 
+            Block block = BuiltInRegistries.BLOCK.get(ore);
+            ItemStack icon = new ItemStack(block);
+            oreIcons.add(icon);
+
             Checkbox box = Checkbox.builder(
-                            Component.literal(ore.getPath()),
+                            Component.literal("  " + ore.getPath()), // space for icon
                             font
                     )
                     .selected(OreConfig.isEnabled(ore))
                     .onValueChange((b, v) -> OreConfig.setEnabled(ore, v))
                     .build();
 
-            box.setX(30);
+            box.setX(50); // shifted for icon
             box.setY(y);
             addRenderableWidget(box);
             checkboxes.add(box);
@@ -157,13 +162,36 @@ public class OreScreen extends Screen {
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float delta) {
 
-        //renderBackground(gfx);
-
         super.render(gfx, mouseX, mouseY, delta);
 
         gfx.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-
-
         gfx.fill(20, LIST_TOP - 6, width - 20, LIST_TOP - 8, 0x66FFFFFF);
+
+        // ===== Render ore icons =====
+        int y = LIST_TOP - scrollOffset;
+        int index = 0;
+
+        for (ResourceLocation ore : allOres) {
+
+            if (!searchBox.getValue().isEmpty()
+                    && !ore.toString().contains(searchBox.getValue().toLowerCase()))
+                continue;
+
+            if (y + ROW_HEIGHT < LIST_TOP || y > height - LIST_BOTTOM_PADDING) {
+                y += ROW_HEIGHT;
+                continue;
+            }
+
+            if (index < oreIcons.size()) {
+                gfx.renderItem(
+                        oreIcons.get(index),
+                        30,
+                        y + 2
+                );
+            }
+
+            index++;
+            y += ROW_HEIGHT;
+        }
     }
 }
