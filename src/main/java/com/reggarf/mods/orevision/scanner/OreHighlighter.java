@@ -27,7 +27,7 @@ import org.lwjgl.opengl.GL11;
 @EventBusSubscriber(value = Dist.CLIENT)
 public class OreHighlighter {
 
-    private static final int RADIUS = 32;
+    private static final int RADIUS = 16;
     private static boolean enabled = false;
 
     private static final RenderType XRAY_VANILLA = RenderType.create(
