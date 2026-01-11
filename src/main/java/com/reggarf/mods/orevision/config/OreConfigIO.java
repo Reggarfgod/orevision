@@ -6,7 +6,6 @@ import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,15 +15,16 @@ import java.util.Map;
 public class OreConfigIO {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Type MAP_TYPE =
-            new TypeToken<Map<String, Integer>>() {}.getType();
+
+    private static final Type TYPE =
+            new TypeToken<Map<String, OreEntry>>() {}.getType();
 
     private static Path getFile() {
         return Minecraft.getInstance().gameDirectory
                 .toPath()
                 .resolve("config")
                 .resolve("orevision")
-                .resolve("orevision_colors.json");
+                .resolve("orevision_ores.json");
     }
 
     public static void load() {
@@ -33,16 +33,15 @@ public class OreConfigIO {
 
         try {
             String json = Files.readString(file);
-            Map<String, Integer> data = GSON.fromJson(json, MAP_TYPE);
-
+            Map<String, OreEntry> data = GSON.fromJson(json, TYPE);
             if (data == null) return;
 
-            for (var e : data.entrySet()) {
-                ResourceLocation id = ResourceLocation.tryParse(e.getKey());
+            data.forEach((k, v) -> {
+                ResourceLocation id = ResourceLocation.tryParse(k);
                 if (id != null) {
-                    OreConfig.setColor(id, e.getValue());
+                    OreConfig.getAll().put(id, v);
                 }
-            }
+            });
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -50,19 +49,18 @@ public class OreConfigIO {
     }
 
     public static void save() {
-        Path file = getFile();
-
         try {
+            Path file = getFile();
             Files.createDirectories(file.getParent());
 
-            Map<String, Integer> out = new HashMap<>();
-            OreConfig.getAllColors().forEach(
-                    (id, color) -> out.put(id.toString(), color)
+            Map<String, OreEntry> out = new HashMap<>();
+            OreConfig.getAll().forEach(
+                    (id, entry) -> out.put(id.toString(), entry)
             );
 
             Files.writeString(file, GSON.toJson(out));
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

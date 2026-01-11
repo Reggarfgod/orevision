@@ -1,7 +1,6 @@
 package com.reggarf.mods.orevision.screen;
 
 import com.reggarf.mods.orevision.config.OreConfig;
-import com.reggarf.mods.orevision.config.OreConfigIO;
 import com.reggarf.mods.orevision.scanner.BoxRenderMode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -35,7 +34,6 @@ public class ColorScreen extends Screen {
 
         int centerX = width / 2;
 
-        // 🔹 Vertical layout anchor (scales perfectly)
         int startY = height / 2 - 70;
         int spacing = 24;
 
@@ -43,48 +41,53 @@ public class ColorScreen extends Screen {
         addRenderableWidget(slider("Green", g, v -> g = v, centerX - 100, startY + spacing));
         addRenderableWidget(slider("Blue", b, v -> b = v, centerX - 100, startY + spacing * 2));
 
-        // 🔹 Box render mode button
         addRenderableWidget(Button.builder(
-                        Component.literal("Box: " + OreConfig.getBoxRenderMode()),
-                        btn -> {
-                            BoxRenderMode next = switch (OreConfig.getBoxRenderMode()) {
-                                case LINES -> BoxRenderMode.QUADS;
-                                case QUADS -> BoxRenderMode.VANILLA;
-                                case VANILLA -> BoxRenderMode.LINES;
-                            };
-                            OreConfig.setBoxRenderMode(next);
-                            OreConfigIO.save();
-                            btn.setMessage(Component.literal("Box: " + next));
-                        }
-                ).pos(centerX - 60, startY + spacing * 3 + 6)
-                .size(120, 20)
-                .build());
+                                Component.literal("Box: " + OreConfig.getBoxRenderMode()),
+                                btn -> {
+                                    BoxRenderMode next = switch (OreConfig.getBoxRenderMode()) {
+                                        case LINES -> BoxRenderMode.QUADS;
+                                        case QUADS -> BoxRenderMode.VANILLA;
+                                        case VANILLA -> BoxRenderMode.LINES;
+                                    };
+                                    OreConfig.setBoxRenderMode(next);
+                                    btn.setMessage(Component.literal("Box: " + next));
+                                }
+                        )
+                        .pos(centerX - 60, startY + spacing * 3 + 6)
+                        .size(120, 20)
+                        .build()
+        );
 
-        // 🔹 Bottom buttons (always visible)
         int bottomY = height - 28;
 
         addRenderableWidget(Button.builder(
-                        Component.literal("Save"),
-                        btn -> {
-                            int newColor = 0xFF000000 | (r << 16) | (g << 8) | b;
-                            OreConfig.setColor(ore, newColor);
-                            OreConfigIO.save();
-                            minecraft.setScreen(parent);
-                        }
-                ).pos(centerX - 90, bottomY)
-                .size(80, 20)
-                .build());
+                                Component.literal("Save"),
+                                btn -> {
+                                    int newColor = 0xFF000000 | (r << 16) | (g << 8) | b;
+                                    OreConfig.setColor(ore, newColor); // auto-saves
+                                    minecraft.setScreen(parent);
+                                }
+                        )
+                        .pos(centerX - 90, bottomY)
+                        .size(80, 20)
+                        .build()
+        );
+
 
         addRenderableWidget(Button.builder(
-                        Component.literal("Reset"),
-                        btn -> {
-                            OreConfig.clearColor(ore);
-                            OreConfigIO.save();
-                            minecraft.setScreen(parent);
-                        }
-                ).pos(centerX + 10, bottomY)
-                .size(80, 20)
-                .build());
+                                Component.literal("Reset"),
+                                btn -> {
+                                    // Regenerate default by recreating entry color
+                                    int defaultColor = OreConfig.getColor(ore);
+                                    r = (defaultColor >> 16) & 0xFF;
+                                    g = (defaultColor >> 8) & 0xFF;
+                                    b = defaultColor & 0xFF;
+                                }
+                        )
+                        .pos(centerX + 10, bottomY)
+                        .size(80, 20)
+                        .build()
+        );
     }
 
     private AbstractSliderButton slider(
@@ -106,19 +109,18 @@ public class ColorScreen extends Screen {
             }
 
             @Override
-            protected void applyValue() {}
+            protected void applyValue() {
+            }
         };
     }
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float delta) {
-      //  renderBackground(gfx);
         super.render(gfx, mouseX, mouseY, delta);
 
-        // 🔹 Title
         gfx.drawCenteredString(font, title, width / 2, 15, 0xFFFFFF);
 
-        // 🔹 Color preview (scales & centers)
+
         int preview = 0xFF000000 | (r << 16) | (g << 8) | b;
         int px = width / 2;
         int py = height / 2 - 110;

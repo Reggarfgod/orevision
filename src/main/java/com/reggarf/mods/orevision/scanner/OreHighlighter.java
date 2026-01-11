@@ -61,19 +61,20 @@ public class OreHighlighter {
     private static final RenderType XRAY_CUSTOM = RenderType.create(
             "orevision_wireframe",
             DefaultVertexFormat.POSITION_COLOR,
-            VertexFormat.Mode.QUADS,
+            VertexFormat.Mode.LINES,
             256,
             false,
             true,
             RenderType.CompositeState.builder()
                     .setShaderState(new RenderStateShard.ShaderStateShard(
-                            GameRenderer::getPositionColorShader))
+                            GameRenderer::getRendertypeLinesShader)) // 🔧 FIX
                     .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
                     .setCullState(RenderStateShard.NO_CULL)
                     .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
                     .setWriteMaskState(RenderStateShard.COLOR_WRITE)
                     .createCompositeState(false)
     );
+
 
     @SubscribeEvent
     public static void onWorldRender(RenderLevelStageEvent event) {
@@ -169,6 +170,12 @@ public class OreHighlighter {
         MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
         VertexConsumer vc = buffer.getBuffer(XRAY_CUSTOM);
 
+        RenderSystem.enableBlend();
+        RenderSystem.disableCull();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.lineWidth(3.0F); //REQUIRED for visibility
+
         poseStack.pushPose();
         poseStack.translate(-cam.x, -cam.y, -cam.z);
 
@@ -188,12 +195,17 @@ public class OreHighlighter {
             float g = ((argb >> 8) & 0xFF) / 255f;
             float b = (argb & 0xFF) / 255f;
 
-            AABB box = new AABB(pos).inflate(0.02f);
-
+            AABB box = new AABB(pos).inflate(0.002f);
             RenderOutline.renderOutlineBox(poseStack, vc, box, r, g, b, a);
         }
 
         poseStack.popPose();
         buffer.endBatch(XRAY_CUSTOM);
+
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableCull();
+        RenderSystem.disableBlend();
     }
+
 }
