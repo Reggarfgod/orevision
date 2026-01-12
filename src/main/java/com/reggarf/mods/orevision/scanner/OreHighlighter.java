@@ -1,28 +1,33 @@
 package com.reggarf.mods.orevision.scanner;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.blaze3d.vertex.*;
 import com.reggarf.mods.orevision.config.OreConfig;
 import com.reggarf.mods.orevision.keybinds.Keybinds;
 import com.reggarf.mods.orevision.util.OreUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.DynamicUniforms;
+import net.minecraft.client.renderer.ShapeRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import org.lwjgl.opengl.GL11;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
+
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
 
 @EventBusSubscriber(value = Dist.CLIENT)
 public class OreHighlighter {
@@ -30,151 +35,34 @@ public class OreHighlighter {
     private static final int RADIUS = 16;
     private static boolean enabled = false;
 
-    private static final RenderType XRAY_VANILLA = RenderType.create(
-            "orevision_xray",
-            DefaultVertexFormat.POSITION_COLOR,
-            VertexFormat.Mode.DEBUG_LINES,
-            512,
-            false,
-            false,
-            RenderType.CompositeState.builder()
-                    .setShaderState(new RenderStateShard.ShaderStateShard(
-                            GameRenderer::getRendertypeLinesShader))
-                    .setCullState(new RenderStateShard.CullStateShard(false))
-                    .setDepthTestState(new RenderStateShard.DepthTestStateShard(
-                            "always", GL11.GL_ALWAYS))
-                    .setTransparencyState(new RenderStateShard.TransparencyStateShard(
-                            "xray",
-                            () -> {
-                                RenderSystem.enableBlend();
-                                RenderSystem.blendFunc(
-                                        GlStateManager.SourceFactor.SRC_ALPHA,
-                                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
-                                );
-                            },
-                            RenderSystem::disableBlend
-                    ))
-                    .createCompositeState(false)
-    );
-
-
-    private static final RenderType XRAY_CUSTOM = RenderType.create(
-            "orevision_wireframe",
-            DefaultVertexFormat.POSITION_COLOR,
-            VertexFormat.Mode.LINES,
-            256,
-            false,
-            true,
-            RenderType.CompositeState.builder()
-                    .setShaderState(new RenderStateShard.ShaderStateShard(
-                            GameRenderer::getRendertypeLinesShader)) // 🔧 FIX
-                    .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-                    .setCullState(RenderStateShard.NO_CULL)
-                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
-                    .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-                    .createCompositeState(false)
-    );
-
-
     @SubscribeEvent
-    public static void onWorldRender(RenderLevelStageEvent event) {
+    public static void onRender(RenderLevelStageEvent.AfterParticles event) {
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null)
-            return;
+        if (mc.player == null || mc.level == null) return;
 
         if (Keybinds.TOGGLE.consumeClick())
             enabled = !enabled;
 
-        if (!enabled)
-            return;
+        if (!enabled) return;
 
-        if (OreConfig.getBoxRenderMode() == BoxRenderMode.VANILLA) {
-            renderVanilla(event, mc);
-        } else {
-            renderCustom(event, mc);
-        }
+        render(event.getPoseStack(), mc);
     }
 
-    private static void renderVanilla(RenderLevelStageEvent event, Minecraft mc) {
-
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES)
-            return;
+    private static void render(PoseStack poseStack, Minecraft mc) {
 
         Level level = mc.level;
         BlockPos center = mc.player.blockPosition();
         Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
 
-        PoseStack poseStack = event.getPoseStack();
-        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
+        RenderSystem.AutoStorageIndexBuffer indices =
+                RenderSystem.getSequentialBuffer(VertexFormat.Mode.LINES);
 
-        RenderSystem.enableBlend();
-        RenderSystem.enablePolygonOffset();
-        RenderSystem.polygonOffset(-1.0F, -10.0F);
-
-        RenderSystem.disableCull();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
-        RenderSystem.depthFunc(GL11.GL_ALWAYS);
-
-        RenderSystem.lineWidth(6.0F);
-        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-
-        poseStack.pushPose();
-        poseStack.translate(-cam.x, -cam.y, -cam.z);
-
-        VertexConsumer vc = buffer.getBuffer(XRAY_VANILLA);
-
-        for (BlockPos pos : BlockPos.betweenClosed(
-                center.offset(-RADIUS, -RADIUS, -RADIUS),
-                center.offset(RADIUS, RADIUS, RADIUS))) {
-
-            Block block = level.getBlockState(pos).getBlock();
-            if (!OreUtils.isOre(block)) continue;
-
-            ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-            if (id == null || !OreConfig.isEnabled(id)) continue;
-
-            int argb = OreConfig.getColor(id);
-            float a = ((argb >> 24) & 0xFF) / 255f;
-            float r = ((argb >> 16) & 0xFF) / 255f;
-            float g = ((argb >> 8) & 0xFF) / 255f;
-            float b = (argb & 0xFF) / 255f;
-
-            AABB box = new AABB(pos).inflate(0.002);
-
-            LevelRenderer.renderLineBox(poseStack, vc, box, r, g, b, a);
-        }
-
-        buffer.endBatch(XRAY_VANILLA);
-        poseStack.popPose();
-
-        RenderSystem.depthFunc(GL11.GL_LEQUAL);
-        RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.disablePolygonOffset();
-        RenderSystem.disableBlend();
-    }
-
-    private static void renderCustom(RenderLevelStageEvent event, Minecraft mc) {
-
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS)
-            return;
-
-        Level level = mc.level;
-        BlockPos center = mc.player.blockPosition();
-        Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
-
-        PoseStack poseStack = event.getPoseStack();
-        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
-        VertexConsumer vc = buffer.getBuffer(XRAY_CUSTOM);
-
-        RenderSystem.enableBlend();
-        RenderSystem.disableCull();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
-        RenderSystem.lineWidth(3.0F); //REQUIRED for visibility
+        BufferBuilder builder = Tesselator.getInstance()
+                .begin(
+                        OrePipelines.LINES_NO_DEPTH.getVertexFormatMode(),
+                        OrePipelines.LINES_NO_DEPTH.getVertexFormat()
+                );
 
         poseStack.pushPose();
         poseStack.translate(-cam.x, -cam.y, -cam.z);
@@ -189,23 +77,66 @@ public class OreHighlighter {
             ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
             if (id == null || !OreConfig.isEnabled(id)) continue;
 
-            int argb = OreConfig.getColor(id);
-            float a = ((argb >> 24) & 0xFF) / 255f;
-            float r = ((argb >> 16) & 0xFF) / 255f;
-            float g = ((argb >> 8) & 0xFF) / 255f;
-            float b = (argb & 0xFF) / 255f;
+            int color = OreConfig.getColor(id);
+            float r = ((color >> 16) & 0xFF) / 255f;
+            float g = ((color >> 8) & 0xFF) / 255f;
+            float b = (color & 0xFF) / 255f;
 
-            AABB box = new AABB(pos).inflate(0.002f);
-            RenderOutline.renderOutlineBox(poseStack, vc, box, r, g, b, a);
+            ShapeRenderer.renderLineBox(
+                    poseStack,
+                    builder,
+                    pos.getX(), pos.getY(), pos.getZ(),
+                    pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1,
+                    r, g, b, 1.0f
+            );
         }
 
         poseStack.popPose();
-        buffer.endBatch(XRAY_CUSTOM);
 
-        RenderSystem.depthMask(true);
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+        try (MeshData mesh = builder.buildOrThrow()) {
+
+            GpuBuffer vertexBuffer = RenderSystem.getDevice()
+                    .createBuffer(
+                            () -> "orevision_xray",
+                            GpuBuffer.USAGE_VERTEX,
+                            mesh.vertexBuffer()
+                    );
+
+            GpuBuffer indexBuffer = indices.getBuffer(mesh.drawState().indexCount());
+
+            GpuTextureView colorTex = mc.getMainRenderTarget().getColorTextureView();
+            GpuTextureView depthTex = mc.getMainRenderTarget().getDepthTextureView();
+
+            GpuBufferSlice[] transforms =
+                    RenderSystem.getDynamicUniforms().writeTransforms(
+                            new DynamicUniforms.Transform(
+                                    RenderSystem.getModelViewMatrix(),
+                                    new Vector4f(1, 1, 1, 1),
+                                    new Vector3f(),
+                                    new Matrix4f(),
+                                    2.0f
+                            )
+                    );
+
+            try (RenderPass pass = RenderSystem.getDevice()
+                    .createCommandEncoder()
+                    .createRenderPass(
+                            () -> "orevision_xray",
+                            colorTex,
+                            OptionalInt.empty(),
+                            depthTex,
+                            OptionalDouble.empty()
+                    )) {
+
+                pass.setPipeline(OrePipelines.LINES_NO_DEPTH);
+                RenderSystem.bindDefaultUniforms(pass);
+                pass.setVertexBuffer(0, vertexBuffer);
+                pass.setIndexBuffer(indexBuffer, indices.type());
+                pass.setUniform("DynamicTransforms", transforms[0]);
+                pass.drawIndexed(0, 0, mesh.drawState().indexCount(), 1);
+            }
+
+            vertexBuffer.close();
+        }
     }
-
 }

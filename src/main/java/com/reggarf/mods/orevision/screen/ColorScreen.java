@@ -1,7 +1,6 @@
 package com.reggarf.mods.orevision.screen;
 
 import com.reggarf.mods.orevision.config.OreConfig;
-import com.reggarf.mods.orevision.scanner.BoxRenderMode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -41,22 +40,22 @@ public class ColorScreen extends Screen {
         addRenderableWidget(slider("Green", g, v -> g = v, centerX - 100, startY + spacing));
         addRenderableWidget(slider("Blue", b, v -> b = v, centerX - 100, startY + spacing * 2));
 
-        addRenderableWidget(Button.builder(
-                                Component.literal("Box: " + OreConfig.getBoxRenderMode()),
-                                btn -> {
-                                    BoxRenderMode next = switch (OreConfig.getBoxRenderMode()) {
-                                        case LINES -> BoxRenderMode.QUADS;
-                                        case QUADS -> BoxRenderMode.VANILLA;
-                                        case VANILLA -> BoxRenderMode.LINES;
-                                    };
-                                    OreConfig.setBoxRenderMode(next);
-                                    btn.setMessage(Component.literal("Box: " + next));
-                                }
-                        )
-                        .pos(centerX - 60, startY + spacing * 3 + 6)
-                        .size(120, 20)
-                        .build()
-        );
+//        addRenderableWidget(Button.builder(
+//                                Component.literal("Box: " + OreConfig.getBoxRenderMode()),
+//                                btn -> {
+//                                    BoxRenderMode next = switch (OreConfig.getBoxRenderMode()) {
+//                                        case LINES -> BoxRenderMode.QUADS;
+//                                        case QUADS -> BoxRenderMode.VANILLA;
+//                                        case VANILLA -> BoxRenderMode.LINES;
+//                                    };
+//                                    OreConfig.setBoxRenderMode(next);
+//                                    btn.setMessage(Component.literal("Box: " + next));
+//                                }
+//                        )
+//                        .pos(centerX - 60, startY + spacing * 3 + 6)
+//                        .size(120, 20)
+//                        .build()
+//        );
 
         int bottomY = height - 28;
 

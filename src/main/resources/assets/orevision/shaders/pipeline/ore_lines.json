@@ -1,0 +1,15 @@
+{
+  "vertex": "minecraft:core/rendertype_lines",
+  "fragment": "orevision:frag/constant_color",
+  "blend": {
+    "func": "add",
+    "srcrgb": "srcalpha",
+    "dstrgb": "1-srcalpha"
+  },
+  "cull": false,
+  "depth_test": "always",
+  "depth_write": false,
+  "color_logic": "none",
+  "vertex_format": "position_color_normal",
+  "primitive": "lines"
+}
