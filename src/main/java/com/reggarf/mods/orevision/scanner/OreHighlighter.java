@@ -81,13 +81,17 @@ public class OreHighlighter {
             float r = ((color >> 16) & 0xFF) / 255f;
             float g = ((color >> 8) & 0xFF) / 255f;
             float b = (color & 0xFF) / 255f;
+            r *= 0.55f;
+            g *= 0.55f;
+            b *= 0.55f;
+
 
             ShapeRenderer.renderLineBox(
                     poseStack,
                     builder,
                     pos.getX(), pos.getY(), pos.getZ(),
                     pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1,
-                    r, g, b, 1.0f
+                    r, g, b, 0.85f
             );
         }
 
