@@ -11,7 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.Tags;
 
 import java.util.ArrayList;
@@ -37,6 +36,12 @@ public class OreScreen extends Screen {
     private static final int LIST_TOP = SEARCH_Y + SEARCH_HEIGHT + 20;
     private static final int LIST_BOTTOM_PADDING = 60;
     private static final int ROW_HEIGHT = 24;
+
+    private static final int ICON_X = 30;
+
+    private static final int COLOR_BOX_SIZE = 12;
+    private static final int COLOR_BUTTON_WIDTH = 60;
+    private static final int COLOR_BUTTON_HEIGHT = 20;
 
     public OreScreen(Screen parent) {
         super(Component.literal("Ore ESP"));
@@ -73,13 +78,13 @@ public class OreScreen extends Screen {
 
         refreshList();
 
-        addRenderableWidget(Button.builder(
-                        Component.literal("Done"),
-                        b -> minecraft.setScreen(parent)
-                )
-                .pos(width / 2 - 40, height - 30)
-                .size(80, 20)
-                .build());
+        addRenderableWidget(
+                Button.builder(Component.literal("Done"),
+                                b -> minecraft.setScreen(parent))
+                        .pos(width / 2 - 40, height - 30)
+                        .size(80, 20)
+                        .build()
+        );
     }
 
     private void refreshList() {
@@ -104,29 +109,32 @@ public class OreScreen extends Screen {
                 continue;
             }
 
-            Block block = BuiltInRegistries.BLOCK.get(ore);
-            ItemStack icon = new ItemStack(block);
+            ItemStack icon = BuiltInRegistries.BLOCK.getOptional(ore)
+                    .map(ItemStack::new)
+                    .orElse(ItemStack.EMPTY);
             oreIcons.add(icon);
 
+            // Checkbox (LEFT)
             Checkbox box = Checkbox.builder(
-                            Component.literal("  " + ore.getPath()), // space for icon
+                            Component.literal("  " + ore.getPath()),
                             font
                     )
                     .selected(OreConfig.isEnabled(ore))
                     .onValueChange((b, v) -> OreConfig.setEnabled(ore, v))
                     .build();
 
-            box.setX(50); // shifted for icon
+            box.setX(ICON_X + 20);
             box.setY(y);
             addRenderableWidget(box);
             checkboxes.add(box);
 
+            // Color button (RIGHT)
             Button colorBtn = Button.builder(
                             Component.literal("Color"),
                             b -> minecraft.setScreen(new ColorScreen(this, ore))
                     )
                     .pos(width - 90, y)
-                    .size(60, 20)
+                    .size(COLOR_BUTTON_WIDTH, COLOR_BUTTON_HEIGHT)
                     .build();
 
             addRenderableWidget(colorBtn);
@@ -167,7 +175,6 @@ public class OreScreen extends Screen {
         gfx.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
         gfx.fill(20, LIST_TOP - 6, width - 20, LIST_TOP - 8, 0x66FFFFFF);
 
-        // ===== Render ore icons =====
         int y = LIST_TOP - scrollOffset;
         int index = 0;
 
@@ -182,16 +189,50 @@ public class OreScreen extends Screen {
                 continue;
             }
 
+            // Ore icon
             if (index < oreIcons.size()) {
-                gfx.renderItem(
-                        oreIcons.get(index),
-                        30,
-                        y + 2
-                );
+                gfx.renderItem(oreIcons.get(index), ICON_X, y + 2);
             }
+
+            // ===== COLOR BOX (ANCHOR TO COLOR BUTTON) =====
+            int colorButtonX = width - 90;
+            int colorButtonY = y;
+
+            int colorBoxX = colorButtonX - COLOR_BOX_SIZE - 6;
+            int colorBoxY = colorButtonY + (COLOR_BUTTON_HEIGHT - COLOR_BOX_SIZE) / 2;
+
+            int argb = OreConfig.getColor(ore);
+            int border = darkenColor(argb, 0.65f);
+
+            gfx.fill(colorBoxX, colorBoxY,
+                    colorBoxX + COLOR_BOX_SIZE, colorBoxY + COLOR_BOX_SIZE, argb);
+
+            gfx.fill(colorBoxX - 1, colorBoxY - 1,
+                    colorBoxX + COLOR_BOX_SIZE + 1, colorBoxY, border);
+            gfx.fill(colorBoxX - 1, colorBoxY + COLOR_BOX_SIZE,
+                    colorBoxX + COLOR_BOX_SIZE + 1, colorBoxY + COLOR_BOX_SIZE + 1, border);
+            gfx.fill(colorBoxX - 1, colorBoxY,
+                    colorBoxX, colorBoxY + COLOR_BOX_SIZE, border);
+            gfx.fill(colorBoxX + COLOR_BOX_SIZE, colorBoxY,
+                    colorBoxX + COLOR_BOX_SIZE + 1, colorBoxY + COLOR_BOX_SIZE, border);
 
             index++;
             y += ROW_HEIGHT;
         }
+    }
+
+    private static int darkenColor(int argb, float factor) {
+        factor = Mth.clamp(factor, 0.0f, 1.0f);
+
+        int a = (argb >> 24) & 0xFF;
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
+
+        r = (int) (r * factor);
+        g = (int) (g * factor);
+        b = (int) (b * factor);
+
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 }
