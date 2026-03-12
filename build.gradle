@@ -106,6 +106,7 @@ dependencies {
     implementation "curse.maven:better-brightness-slider-respawn-1127829:6823730"
     implementation "curse.maven:sodium-394468:6382651"
     implementation "curse.maven:better-library-1150683:7359503"
+    implementation "curse.maven:jei-238222:7420587"
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
     // The group id is ignored when searching -- in this case, it is "blank"

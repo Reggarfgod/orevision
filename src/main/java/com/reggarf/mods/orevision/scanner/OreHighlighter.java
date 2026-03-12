@@ -1,8 +1,8 @@
 package com.reggarf.mods.orevision.scanner;
 
-import com.reggarf.mods.orevision.keybinds.Keybinds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.ListTag;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -15,7 +15,6 @@ public class OreHighlighter {
 
     public static boolean enabled = false;
     public static boolean forceRefresh = true;
-
     public static BlockPos lastCenter = BlockPos.ZERO;
 
     @SubscribeEvent
@@ -28,24 +27,30 @@ public class OreHighlighter {
         if (mc.player == null || mc.level == null)
             return;
 
-        if (Keybinds.TOGGLE.consumeClick()) {
-            enabled = !enabled;
-            forceRefresh = true;
+        boolean active =
+                mc.player.getPersistentData().getBoolean("orevision_active");
 
-            if (!enabled) {
-                OreBufferBuilder.destroy();
-                return;
-            }
+        // Potion just ended
+        if (!active && enabled) {
+            enabled = false;
+            OreBufferBuilder.destroy();
+            return;
+        }
+
+        // Potion just started
+        if (active && !enabled) {
+            enabled = true;
+            forceRefresh = true;
         }
 
         if (!enabled)
             return;
 
-        BlockPos currentCenter = mc.player.blockPosition();
+        BlockPos center = mc.player.blockPosition();
 
-        if (OreBufferBuilder.needsRebuild(currentCenter)) {
-            OreBufferBuilder.rebuild(mc.level, currentCenter);
-            lastCenter = currentCenter;
+        if (OreBufferBuilder.needsRebuild(center)) {
+            OreBufferBuilder.rebuild(mc.level, center, mc.player);
+            lastCenter = center;
             forceRefresh = false;
         }
 

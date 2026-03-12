@@ -5,7 +5,9 @@ import com.reggarf.mods.orevision.config.OreConfig;
 import com.reggarf.mods.orevision.util.OreUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 
@@ -19,12 +21,18 @@ public class OreBufferBuilder {
                 || !currentCenter.equals(OreHighlighter.lastCenter);
     }
 
-    public static void rebuild(Level level, BlockPos center) {
+    public static void rebuild(Level level, BlockPos center, Player player) {
 
         destroy();
 
-        Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.begin(
+        ListTag allowedOres =
+                player.getPersistentData().getList("orevision_ores", 8);
+
+        if (allowedOres.isEmpty())
+            return;
+
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.begin(
                 VertexFormat.Mode.DEBUG_LINES,
                 DefaultVertexFormat.POSITION_COLOR
         );
@@ -34,11 +42,30 @@ public class OreBufferBuilder {
                 center.offset(OreHighlighter.RADIUS, OreHighlighter.RADIUS, OreHighlighter.RADIUS))) {
 
             Block block = level.getBlockState(pos).getBlock();
-            if (!OreUtils.isOre(block))
+            ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+
+            if (id == null)
                 continue;
 
-            ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-            if (id == null || !OreConfig.isEnabled(id))
+            // iron_ore -> iron
+            String oreName = id.getPath();
+            if (oreName.startsWith("deepslate_"))
+                oreName = oreName.substring("deepslate_".length());
+
+            if (!oreName.endsWith("_ore"))
+                continue;
+
+            oreName = oreName.replace("_ore", "");
+
+            boolean allowed = false;
+            for (int i = 0; i < allowedOres.size(); i++) {
+                if (allowedOres.getString(i).equals(oreName)) {
+                    allowed = true;
+                    break;
+                }
+            }
+
+            if (!allowed)
                 continue;
 
             int argb = OreConfig.getColor(id);

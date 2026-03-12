@@ -1,5 +1,6 @@
 package com.reggarf.mods.orevision.screen;
 
+import com.reggarf.mods.better_lib.util.common.GuiUtils;
 import com.reggarf.mods.orevision.config.OreConfig;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -30,22 +31,23 @@ public class OreScreen extends Screen {
 
     private int scrollOffset = 0;
 
-    private static final int SEARCH_Y = 30;
-    private static final int SEARCH_HEIGHT = 20;
+    private static final int BORDER = 0xFFFFA800;
+    private static final int PANEL_TOP = 0xFF3A3A3A;
+    private static final int PANEL_BOTTOM = 0xFF2B2B2B;
 
-    private static final int LIST_TOP = SEARCH_Y + SEARCH_HEIGHT + 20;
-    private static final int LIST_BOTTOM_PADDING = 60;
     private static final int ROW_HEIGHT = 24;
 
-    private static final int ICON_X = 30;
-
-    private static final int COLOR_BOX_SIZE = 12;
-    private static final int COLOR_BUTTON_WIDTH = 60;
-    private static final int COLOR_BUTTON_HEIGHT = 20;
-
     public OreScreen(Screen parent) {
-        super(Component.literal("Ore ESP"));
+        super(Component.literal("Ore Vision"));
         this.parent = parent;
+    }
+
+    private int panelWidth() {
+        return Math.min(320, width - 40);
+    }
+
+    private int panelHeight() {
+        return Math.min(340, height - 40);
     }
 
     @Override
@@ -53,12 +55,18 @@ public class OreScreen extends Screen {
 
         scrollOffset = 0;
 
+        int panelW = panelWidth();
+        int panelH = panelHeight();
+
+        int x = (width - panelW) / 2;
+        int y = (height - panelH) / 2;
+
         searchBox = new EditBox(
                 font,
-                width / 2 - 100,
-                SEARCH_Y,
-                200,
-                SEARCH_HEIGHT,
+                x + 12,
+                y + 25,
+                panelW - 24,
+                18,
                 Component.literal("Search ores...")
         );
 
@@ -81,7 +89,7 @@ public class OreScreen extends Screen {
         addRenderableWidget(
                 Button.builder(Component.literal("Done"),
                                 b -> minecraft.setScreen(parent))
-                        .pos(width / 2 - 40, height - 30)
+                        .pos(width / 2 - 40, y + panelH - 28)
                         .size(80, 20)
                         .build()
         );
@@ -97,50 +105,59 @@ public class OreScreen extends Screen {
         oreIcons.clear();
 
         String filter = searchBox.getValue().toLowerCase().trim();
-        int y = LIST_TOP - scrollOffset;
+
+        int panelW = panelWidth();
+        int panelH = panelHeight();
+
+        int x = (width - panelW) / 2;
+        int y = (height - panelH) / 2;
+
+        int listTop = y + 70;
+        int listBottom = y + panelH - 50;
+
+        int listY = listTop - scrollOffset;
 
         for (ResourceLocation ore : allOres) {
 
             if (!filter.isEmpty() && !ore.toString().contains(filter))
                 continue;
 
-            if (y + ROW_HEIGHT < LIST_TOP || y > height - LIST_BOTTOM_PADDING) {
-                y += ROW_HEIGHT;
+            if (listY + ROW_HEIGHT < listTop || listY > listBottom) {
+                listY += ROW_HEIGHT;
                 continue;
             }
 
             ItemStack icon = BuiltInRegistries.BLOCK.getOptional(ore)
                     .map(ItemStack::new)
                     .orElse(ItemStack.EMPTY);
+
             oreIcons.add(icon);
 
-            // Checkbox (LEFT)
             Checkbox box = Checkbox.builder(
                             Component.literal("  " + ore.getPath()),
-                            font
-                    )
+                            font)
                     .selected(OreConfig.isEnabled(ore))
                     .onValueChange((b, v) -> OreConfig.setEnabled(ore, v))
                     .build();
 
-            box.setX(ICON_X + 20);
-            box.setY(y);
+            box.setX(x + 32);
+            box.setY(listY);
+
             addRenderableWidget(box);
             checkboxes.add(box);
 
-            // Color button (RIGHT)
             Button colorBtn = Button.builder(
                             Component.literal("Color"),
                             b -> minecraft.setScreen(new ColorScreen(this, ore))
                     )
-                    .pos(width - 90, y)
-                    .size(COLOR_BUTTON_WIDTH, COLOR_BUTTON_HEIGHT)
+                    .pos(x + panelW - 60, listY)
+                    .size(50, 20)
                     .build();
 
             addRenderableWidget(colorBtn);
             colorButtons.add(colorBtn);
 
-            y += ROW_HEIGHT;
+            listY += ROW_HEIGHT;
         }
     }
 
@@ -152,8 +169,11 @@ public class OreScreen extends Screen {
                         || id.toString().contains(searchBox.getValue().toLowerCase()))
                 .count();
 
+        int panelH = panelHeight();
+
+        int viewHeight = panelH - 120;
+
         int contentHeight = totalRows * ROW_HEIGHT;
-        int viewHeight = height - LIST_TOP - LIST_BOTTOM_PADDING;
 
         int maxScroll = Math.max(0, contentHeight - viewHeight);
 
@@ -168,14 +188,31 @@ public class OreScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
+    }
+
+    @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float delta) {
+
+        GuiUtils.drawDimBackground(gfx, width, height);
+
+        int panelW = panelWidth();
+        int panelH = panelHeight();
+
+        int x = (width - panelW) / 2;
+        int y = (height - panelH) / 2;
+
+        gfx.fill(x - 3, y - 3, x + panelW + 3, y + panelH + 3, BORDER);
+        gfx.fillGradient(x, y, x + panelW, y + panelH, PANEL_TOP, PANEL_BOTTOM);
 
         super.render(gfx, mouseX, mouseY, delta);
 
-        gfx.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-        gfx.fill(20, LIST_TOP - 6, width - 20, LIST_TOP - 8, 0x66FFFFFF);
+        gfx.drawCenteredString(font, "Ore Vision", width / 2, y + 15, BORDER);
 
-        int y = LIST_TOP - scrollOffset;
+        int listTop = y + 70;
+        int listBottom = y + panelH - 50;
+
+        int listY = listTop - scrollOffset;
         int index = 0;
 
         for (ResourceLocation ore : allOres) {
@@ -184,55 +221,26 @@ public class OreScreen extends Screen {
                     && !ore.toString().contains(searchBox.getValue().toLowerCase()))
                 continue;
 
-            if (y + ROW_HEIGHT < LIST_TOP || y > height - LIST_BOTTOM_PADDING) {
-                y += ROW_HEIGHT;
+            if (listY + ROW_HEIGHT < listTop || listY > listBottom) {
+                listY += ROW_HEIGHT;
                 continue;
             }
 
-            // Ore icon
             if (index < oreIcons.size()) {
-                gfx.renderItem(oreIcons.get(index), ICON_X, y + 2);
+                gfx.renderItem(oreIcons.get(index), x + 16, listY + 2);
             }
 
-            // ===== COLOR BOX (ANCHOR TO COLOR BUTTON) =====
-            int colorButtonX = width - 90;
-            int colorButtonY = y;
-
-            int colorBoxX = colorButtonX - COLOR_BOX_SIZE - 6;
-            int colorBoxY = colorButtonY + (COLOR_BUTTON_HEIGHT - COLOR_BOX_SIZE) / 2;
+            int colorButtonX = x + panelW - 60;
+            int colorBoxX = colorButtonX - 14;
+            int colorBoxY = listY + 4;
 
             int argb = OreConfig.getColor(ore);
-            int border = darkenColor(argb, 0.65f);
 
             gfx.fill(colorBoxX, colorBoxY,
-                    colorBoxX + COLOR_BOX_SIZE, colorBoxY + COLOR_BOX_SIZE, argb);
-
-            gfx.fill(colorBoxX - 1, colorBoxY - 1,
-                    colorBoxX + COLOR_BOX_SIZE + 1, colorBoxY, border);
-            gfx.fill(colorBoxX - 1, colorBoxY + COLOR_BOX_SIZE,
-                    colorBoxX + COLOR_BOX_SIZE + 1, colorBoxY + COLOR_BOX_SIZE + 1, border);
-            gfx.fill(colorBoxX - 1, colorBoxY,
-                    colorBoxX, colorBoxY + COLOR_BOX_SIZE, border);
-            gfx.fill(colorBoxX + COLOR_BOX_SIZE, colorBoxY,
-                    colorBoxX + COLOR_BOX_SIZE + 1, colorBoxY + COLOR_BOX_SIZE, border);
+                    colorBoxX + 12, colorBoxY + 12, argb);
 
             index++;
-            y += ROW_HEIGHT;
+            listY += ROW_HEIGHT;
         }
-    }
-
-    private static int darkenColor(int argb, float factor) {
-        factor = Mth.clamp(factor, 0.0f, 1.0f);
-
-        int a = (argb >> 24) & 0xFF;
-        int r = (argb >> 16) & 0xFF;
-        int g = (argb >> 8) & 0xFF;
-        int b = argb & 0xFF;
-
-        r = (int) (r * factor);
-        g = (int) (g * factor);
-        b = (int) (b * factor);
-
-        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 }
